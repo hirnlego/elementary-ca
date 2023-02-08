@@ -40,7 +40,7 @@ function CAWorld(options) {
 	this.height = 24;
 	this.options = options;
 
-	this.wrap = false;
+	this.wrap = true;
 
 	this.TOPLEFT        = { index: 0, x: -1, y: -1 };
 	this.TOP            = { index: 1, x:  0, y: -1 };
