@@ -7,8 +7,10 @@ import teoria from 'teoria';
 chalk.level = 2;
 
 class Generations {
-    constructor(steps, rows, liveRule, dieRule, density, states) {
+    constructor(steps, rows, liveRule, dieRule, density, states, loops) {
         this.currentStep = 0;
+        this.currentLoop = 0;
+        this.loops = loops;
 
         this.world = new ca.World({
             width: steps,
@@ -25,6 +27,7 @@ class Generations {
             init: function (options) {
                 this.options = options;
                 this.state = Math.random() <= this.options.density ? Math.random() : 0;
+                this.initState = this.state;
             },
             getState: function () {
                 return this.state;
@@ -42,6 +45,9 @@ class Generations {
             },
             reset: function () {
                 this.living = this.state > 0;
+            },
+            loop: function() {
+                this.state = this.initState;
             }
         }, function () {
             //init
@@ -59,8 +65,22 @@ class Generations {
         }
     }
 
+    reset() {
+        for (let y = 0; y < this.world.height; y++) {
+            for (let x = 0; x < this.world.width; x++) {
+                this.world.grid[y][x].loop();
+            }
+        }
+        this.currentLoop = 0;
+    }
+
     update(log = false) {
-        this.world.step();
+        this.currentLoop++;
+        if (this.currentLoop === this.loops) {
+            this.reset();
+        } else {
+            this.world.step();
+        }
 
         if (log) {
             for (let y = 0; y < this.world.height; y++) {
@@ -93,28 +113,50 @@ class Generations {
     }
 }
 
-const liveRule = [2, 3, 4];
-const dieRule = [5, 6, 7, 8];
+const liveRule = [3, 4];
+const dieRule = [7, 8];
 const density = 0.5;
 const states = 8;
-const rates = [2, 1.5, 1, 0.5];
-const grids = [new Generations(8, 8, liveRule, dieRule, density, states)];
+const loops = 4;
+const grids = [new Generations(8, 8, liveRule, dieRule, density, states, loops)];
 
 const bpm = 120;
-const rate = 60000 / bpm;
+const rate = (60000 / 4) / bpm;
+const autoDuration = false;
 
-let baseNote = teoria.note.fromKey(12 + Math.round(Math.random() * 24));
+let baseNote = teoria.note.fromKey(24 + Math.round(Math.random() * 24));
 let accentNote = teoria.note.fromKey(baseNote.key() + 12);
 let scaleType = ['major', 'minor', 'lydian', 'mixolydian', 'phrygian'][Math.round(Math.random() * 4)];
 let scale = accentNote.scale(scaleType).notes().concat(baseNote.scale(scaleType).notes());
 
+function median(numbers) {
+    const sorted = Array.from(numbers).sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+
+    if (sorted.length % 2 === 0) {
+        return (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    return sorted[middle];
+}
+
 core.on('load', () => {
     grids.forEach((grid, i) => {
         setInterval(() => {
-            //let r = rates[Math.floor(grid.out(2) * (rates.length - 1))];
-            let r = rates[2];
-            let gate = el.metro({ interval: Math.floor(rate * r), name: i });
-            let notes = grid.row(0).map(function (v) {
+            let int = rate;
+            if (autoDuration) {
+                let r = rate / grid.row(2).length;
+                let med = grid.row(2).reduce((a, b) => a + b) / grid.row(2).length;
+                if (med > 0) {
+                    let p = (r / med) * grid.out(2);
+                    int = p * grid.row(2).length;
+                    if (int <= 0) {
+                        int = rate;
+                    }
+                }
+            }
+            let gate = el.metro({ interval: int, name: i });
+            let notes = grid.row(0).map(v => {
                 return scale[Math.floor(v * (scale.length - 1))].fq();
             });
             let noteSeq = el.seq({ key: 'n' + i, seq: notes, hold: true }, gate, 0);
@@ -129,12 +171,10 @@ core.on('load', () => {
                 el.cycle(noteSeq),
                 adsr
             );
-            //let t = rates[Math.floor(grid.out(3) * (rates.length - 1))];
-            let t = rates[3];
-            let out = el.mul(o, 0.1);
-            out = el.delay({size: 44100}, el.smooth(el.tau2pole(0.1), el.ms2samps(rate * t)), 0.7, out);
+            let out = el.mul(o, 0.5);
+            out = el.delay({size: 44100}, el.smooth(el.tau2pole(0.1), el.ms2samps(rate)), 0.5, out);
             core.render(out, out);
-        }, 5);
+        }, rate);
     });
 });
 
