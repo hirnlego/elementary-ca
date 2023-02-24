@@ -1,20 +1,24 @@
 {
-  "name": "test",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "ga",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon [options] --exec 'elementary index.js'"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "author": "",
-  "license": "ISC",
+  "devDependencies": {
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
+    "@sveltejs/vite-plugin-svelte": "^2.0.2",
+    "svelte": "^3.55.1",
+    "vite": "^4.1.0"
+  },
   "dependencies": {
     "@elemaudio/core": "^1.0.8",
-    "@elemaudio/node-renderer": "^1.0.5",
-    "chalk": "^5.2.0",
+    "@elemaudio/web-renderer": "^1.0.16",
+    "honeycomb-grid": "^4.0.1",
+    "pixi.js": "^7.2.0-beta",
     "teoria": "^2.5.0"
-  },
-  "devDependencies": {}
+  }
 }
